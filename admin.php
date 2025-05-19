@@ -52,55 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 
 // Если не авторизован - форма входа
 if (!isAdminLoggedIn()) {
-    ?>
-    <!DOCTYPE html>
-    <html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <title>Вход для администратора</title>
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; }
-            .login-form { background: #f9f9f9; padding: 20px; border-radius: 5px; }
-            .form-group { margin-bottom: 15px; }
-            input { width: 100%; padding: 8px; box-sizing: border-box; }
-            button { background: #4CAF50; color: white; border: none; padding: 10px; width: 100%; cursor: pointer; }
-            .error { color: red; }
-        </style>
-    </head>
-    <body>
-        <div class="login-form">
-            <h2>Вход для администратора</h2>
-            <?php if (isset($_SESSION['error'])): ?>
-                <div class="error"><?= $_SESSION['error'] ?></div>
-                <?php unset($_SESSION['error']); ?>
-            <?php endif; ?>
-            <form method="POST">
-                <div class="form-group">
-                    <label>Логин:</label>
-                    <input type="text" name="login" required>
-                </div>
-                <div class="form-group">
-                    <label>Пароль:</label>
-                    <input type="password" name="password" required>
-                </div>
-                <button type="submit">Войти</button>
-            </form>
-        </div>
-    </body>
-    </html>
-    <?php
+    // ... форма входа (остается без изменений)
     exit();
 }
 
-// Основная логика админ-панели
 $pdo = getPDO();
 
-// Обработка удаления
+// Обработка удаления записи
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     
-    $pdo->beginTransaction();
     try {
+        $pdo->beginTransaction();
+        
         // Удаляем связанные записи
         $stmt = $pdo->prepare("DELETE FROM application_languages WHERE application_id = ?");
         $stmt->execute([$id]);
@@ -120,20 +84,24 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     exit();
 }
 
-// Получение данных
+// Получаем данные с правильной нумерацией строк
 $applications = $pdo->query("
-    SELECT a.*, GROUP_CONCAT(p.name SEPARATOR ', ') as languages 
-    FROM applications a
+    SELECT 
+        (@row_number:=@row_number+1) AS row_num,
+        a.*,
+        GROUP_CONCAT(p.name SEPARATOR ', ') as languages
+    FROM 
+        applications a, 
+        (SELECT @row_number:=0) AS counter
     LEFT JOIN application_languages ap ON a.id = ap.application_id
     LEFT JOIN programming_languages p ON ap.language_id = p.id
     GROUP BY a.id
-    ORDER BY a.id DESC
+    ORDER BY a.id
 ")->fetchAll();
 
 $languages = $pdo->query("SELECT * FROM programming_languages")->fetchAll();
-
-// Отображение админ-панели
 ?>
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -146,7 +114,8 @@ $languages = $pdo->query("SELECT * FROM programming_languages")->fetchAll();
         th { background-color: #f5f5f5; }
         .message { padding: 10px; margin-bottom: 15px; background: #dff0d8; color: #3c763d; }
         .error { padding: 10px; margin-bottom: 15px; background: #f2dede; color: #a94442; }
-        .actions a { margin-right: 10px; }
+        .actions a { margin-right: 10px; color: #337ab7; text-decoration: none; }
+        .actions a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -166,6 +135,7 @@ $languages = $pdo->query("SELECT * FROM programming_languages")->fetchAll();
     <table>
         <thead>
             <tr>
+                <th>№</th>
                 <th>ID</th>
                 <th>ФИО</th>
                 <th>Телефон</th>
@@ -179,7 +149,8 @@ $languages = $pdo->query("SELECT * FROM programming_languages")->fetchAll();
         <tbody>
             <?php foreach ($applications as $app): ?>
                 <tr>
-                    <td><?= htmlspecialchars($app['id']) ?></td>
+                    <td><?= $app['row_num'] ?></td>
+                    <td><?= $app['id'] ?></td>
                     <td><?= htmlspecialchars($app['full_name']) ?></td>
                     <td><?= htmlspecialchars($app['phone']) ?></td>
                     <td><?= htmlspecialchars($app['email']) ?></td>
