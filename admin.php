@@ -2,18 +2,18 @@
 session_start();
 header('Content-Type: text/html; charset=UTF-8');
 
-// Включение отладки
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Настройки базы данных
+
 $db_host = 'localhost';
 $db_name = 'u68895';
 $db_user = 'u68895';
 $db_pass = '1562324';
 
-// Функция для создания подключения к БД
+
 function getPDO() {
     global $db_host, $db_name, $db_user, $db_pass;
     static $pdo = null;
@@ -30,12 +30,12 @@ function getPDO() {
     return $pdo;
 }
 
-// Проверка авторизации администратора
+
 function isAdminAuthenticated() {
     return !empty($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 }
 
-// Выход из системы
+
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     session_unset();
     session_destroy();
@@ -43,7 +43,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'logout') {
     exit();
 }
 
-// Обработка формы входа администратора
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $login = trim($_POST['login'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -51,13 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     try {
         $pdo = getPDO();
         
-        // Проверяем существование администратора
+     
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE login = ? LIMIT 1");
         $stmt->execute([$login]);
         $admin = $stmt->fetch();
         
         if ($admin) {
-            // Проверка пароля с подробным логированием
+            
             if (password_verify($password, $admin['password_hash'])) {
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_id'] = $admin['id'];
@@ -84,13 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     }
 }
 
-// Если администратор не авторизован, показываем форму входа
+
 if (!isAdminAuthenticated()) {
     displayAdminLoginForm();
     exit();
 }
 
-// Основные функции для работы с данными
+
 function getAllApplications($pdo) {
     $stmt = $pdo->query("
         SELECT a.*, GROUP_CONCAT(pl.name SEPARATOR ', ') as languages
@@ -133,7 +133,7 @@ function deleteApplication($pdo, $id) {
 function updateApplication($pdo, $id, $data) {
     $pdo->beginTransaction();
     try {
-        // Обновляем основную информацию
+       
         $stmt = $pdo->prepare("
             UPDATE applications SET
             full_name = ?, phone = ?, email = ?, birth_date = ?, gender = ?, biography = ?, contract_agreed = ?
@@ -150,7 +150,7 @@ function updateApplication($pdo, $id, $data) {
             $id
         ]);
         
-        // Обновляем языки программирования
+       
         $pdo->prepare("DELETE FROM application_languages WHERE application_id = ?")->execute([$id]);
         
         $stmt = $pdo->prepare("INSERT INTO application_languages (application_id, language_id) VALUES (?, ?)");
@@ -180,17 +180,17 @@ function getLanguagesStatistics($pdo) {
     return $stmt->fetchAll();
 }
 
-// Обработка действий администратора
+
 $action = $_GET['action'] ?? '';
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 try {
     $pdo = getPDO();
     
-    // Получаем список всех языков для форм
+   
     $languages = $pdo->query("SELECT * FROM programming_languages ORDER BY name")->fetchAll();
     
-    // Обработка удаления
+  
     if ($action === 'delete' && $id > 0) {
         if (deleteApplication($pdo, $id)) {
             $_SESSION['admin_message'] = 'Заявка успешно удалена';
@@ -201,7 +201,7 @@ try {
         exit();
     }
     
-    // Обработка редактирования
+   
     if ($action === 'edit' && $id > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'full_name' => trim($_POST['full_name'] ?? ''),
@@ -223,7 +223,7 @@ try {
         exit();
     }
     
-    // Получение данных для отображения
+  
     $stats = getLanguagesStatistics($pdo);
     $applications = getAllApplications($pdo);
     
@@ -231,10 +231,10 @@ try {
     die("Ошибка базы данных: " . $e->getMessage());
 }
 
-// Отображение интерфейса администратора
+
 displayAdminPanel($applications, $stats, $languages, $action, $id);
 
-// Функции отображения
+
 function displayAdminLoginForm() {
     ?>
     <!DOCTYPE html>
