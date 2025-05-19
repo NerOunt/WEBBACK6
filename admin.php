@@ -206,7 +206,7 @@ $languages = $pdo->query("SELECT * FROM programming_languages")->fetchAll();
                             <td><?= $app['gender'] === 'male' ? 'Мужской' : 'Женский' ?></td>
                             <td><?= htmlspecialchars($app['languages']) ?></td>
                             <td class="actions">
-                                <a href="admin.php?edit=<?= $app['id'] ?>">✏️ Редактировать</a>
+                                <a href="admin.php?edit=<?= $app['id'] ?>">Редактировать</a>
                                 <a href="admin.php?delete=<?= $app['id'] ?>" onclick="return confirm('Вы уверены, что хотите удалить эту заявку?')"> Удалить</a>
                             </td>
                         </tr>
