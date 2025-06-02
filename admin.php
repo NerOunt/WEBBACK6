@@ -53,22 +53,21 @@ function isAdminAuthenticated() {
     return false;
 }
 
-// Обработка выхода
+
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    // Очищаем сессию
+    /
     $_SESSION = array();
     session_destroy();
     
-    // Удаляем заголовки авторизации
+  
     header('HTTP/1.1 401 Unauthorized');
     header('WWW-Authenticate: Basic realm="Logged out"');
     
-    // Перенаправляем с параметром, чтобы избежать кэширования
     header('Location: admin.php?loggedout=1');
     exit();
 }
 
-// Если пользователь вышел, показываем сообщение
+
 if (isset($_GET['loggedout'])) {
     die('Вы успешно вышли. <a href="admin.php">Войти снова</a>');
 }
@@ -212,7 +211,7 @@ try {
     die("Ошибка базы данных: " . $e->getMessage());
 }
 
-// Отображение панели администратора
+
 $app = null;
 if ($action === 'edit' && $id > 0) {
     $pdo = getPDO();
