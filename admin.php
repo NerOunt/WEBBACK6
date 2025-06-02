@@ -244,6 +244,15 @@ if ($action === 'edit' && $id > 0) {
         .radio-group input { width: auto; margin-right: 5px; }
         .logout-btn { background: #d9534f; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
         .logout-btn:hover { background: #c9302c; }
+        .form-group input[type="checkbox"] {
+        width: auto;
+        display: inline-block;
+        margin-right: 10px;
+    }
+    .form-group label[for="contract_agreed"] {
+        display: inline;
+        font-weight: normal;
+    }
     </style>
 </head>
 <body>
@@ -279,41 +288,43 @@ if ($action === 'edit' && $id > 0) {
         </div>
         
         <h2>Все заявки</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>ФИО</th>
-                    <th>Телефон</th>
-                    <th>Email</th>
-                    <th>Дата рождения</th>
-                    <th>Пол</th>
-                    <th>Языки программирования</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($applications as $appItem): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($appItem['id']) ?></td>
-                        <td><?= htmlspecialchars($appItem['full_name']) ?></td>
-                        <td><?= htmlspecialchars($appItem['phone']) ?></td>
-                        <td><?= htmlspecialchars($appItem['email']) ?></td>
-                        <td><?= htmlspecialchars($appItem['birth_date']) ?></td>
-                        <td><?= $appItem['gender'] === 'male' ? 'Мужской' : 'Женский' ?></td>
-                        <td><?= htmlspecialchars($appItem['languages']) ?></td>
-                        <td class="actions">
-                            <a href="admin.php?action=edit&id=<?= $appItem['id'] ?>">Редактировать</a>
-                            <a href="admin.php?action=delete&id=<?= $appItem['id'] ?>" onclick="return confirm('Вы уверены?')">Удалить</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        
-        <?php if ($action === 'edit' && $app): ?>
-            <h2>Редактирование заявки #<?= htmlspecialchars($app['id']) ?></h2>
-            <form method="POST" action="admin.php?action=edit&id=<?= $app['id'] ?>">
+       <table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>ФИО</th>
+            <th>Телефон</th>
+            <th>Email</th>
+            <th>Дата рождения</th>
+            <th>Пол</th>
+            <th>Биография</th> 
+            <th>Языки программирования</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($applications as $appItem): ?>
+            <tr>
+                <td><?= htmlspecialchars($appItem['id']) ?></td>
+                <td><?= htmlspecialchars($appItem['full_name']) ?></td>
+                <td><?= htmlspecialchars($appItem['phone']) ?></td>
+                <td><?= htmlspecialchars($appItem['email']) ?></td>
+                <td><?= htmlspecialchars($appItem['birth_date']) ?></td>
+                <td><?= $appItem['gender'] === 'male' ? 'Мужской' : 'Женский' ?></td>
+                <td><?= htmlspecialchars($appItem['biography']) ?></td> 
+                <td><?= htmlspecialchars($appItem['languages']) ?></td>
+                <td class="actions">
+                    <a href="admin.php?action=edit&id=<?= $appItem['id'] ?>">Редактировать</a>
+                    <a href="admin.php?action=delete&id=<?= $appItem['id'] ?>" onclick="return confirm('Вы уверены?')">Удалить</a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
+<?php if ($action === 'edit' && $app): ?>
+    <h2>Редактирование заявки #<?= htmlspecialchars($app['id']) ?></h2>
+    <form method="POST" action="admin.php?action=edit&id=<?= $app['id'] ?>">
                 <div class="form-group">
                     <label for="full_name">ФИО*</label>
                     <input type="text" id="full_name" name="full_name" 
@@ -369,17 +380,16 @@ if ($action === 'edit' && $id > 0) {
                     <textarea id="biography" name="biography" rows="5"><?= htmlspecialchars($app['biography']) ?></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" name="contract_agreed" 
-                               <?= $app['contract_agreed'] ? 'checked' : '' ?> required> Согласие с контрактом*
-                    </label>
-                </div>
-                
-                <button type="submit">Сохранить</button>
-                <a href="admin.php">Отмена</a>
-            </form>
-        <?php endif; ?>
+              <div class="form-group">
+            <input type="checkbox" id="contract_agreed" name="contract_agreed" 
+                   <?= $app['contract_agreed'] ? 'checked' : '' ?> required>
+            <label for="contract_agreed">Согласие с контрактом*</label>
+        </div>
+        
+        <button type="submit">Сохранить</button>
+        <a href="admin.php">Отмена</a>
+    </form>
+<?php endif; ?>
     </div>
 </body>
 </html>
