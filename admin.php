@@ -1,6 +1,12 @@
 <?php
 session_start();
-header('Content-Type: text/html; charset=UTF-8');
+
+header('HTTP/1.1 401 Unauthorized');
+header('WWW-Authenticate: Basic realm="Admin Panel (Please logout)"');
+header('Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0');
+header('Pragma: no-cache');
+echo 'Вы вышли. <a href="admin.php">Войти снова</a>';
+exit();
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
