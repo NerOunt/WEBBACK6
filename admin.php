@@ -11,7 +11,6 @@ $db_name = 'u68895';
 $db_user = 'u68895';
 $db_pass = '1562324';
 
-// Функция для подключения к базе данных
 function getPDO() {
     global $db_host, $db_name, $db_user, $db_pass;
     static $pdo = null;
@@ -28,56 +27,59 @@ function getPDO() {
     return $pdo;
 }
 
-// Проверка учетных данных администратора
-function checkAdminCredentials($username, $password) {
+function isAdminAuthenticated() {
+    if (!isset($_SERVER['PHP_AUTH_USER'])) {
+        return false;
+    }
+    
+    $providedUsername = $_SERVER['PHP_AUTH_USER'];
+    $providedPassword = $_SERVER['PHP_AUTH_PW'];
+    
     try {
         $pdo = getPDO();
         $stmt = $pdo->prepare("SELECT * FROM admins WHERE login = ? LIMIT 1");
-        $stmt->execute([$username]);
+        $stmt->execute([$providedUsername]);
         $admin = $stmt->fetch();
         
-        if ($admin && password_verify($password, $admin['password_hash'])) {
+        if ($admin && password_verify($providedPassword, $admin['password_hash'])) {
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['admin_id'] = $admin['id'];
-            $_SESSION['admin_name'] = $admin['login'];
             return true;
         }
     } catch (PDOException $e) {
         error_log("Ошибка проверки авторизации: " . $e->getMessage());
     }
-    return false;
-}
-
-// Обработка формы входа
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
     
-    if (checkAdminCredentials($username, $password)) {
-        header('Location: admin.php');
-        exit();
-    } else {
-        $_SESSION['login_error'] = 'Неверные учетные данные';
-        header('Location: admin.php?action=login');
-        exit();
-    }
+    return false;
 }
 
 // Обработка выхода
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    session_unset();
+    // Очищаем сессию
+    $_SESSION = array();
     session_destroy();
-    header('Location: admin.php?action=login');
+    
+    // Удаляем заголовки авторизации
+    header('HTTP/1.1 401 Unauthorized');
+    header('WWW-Authenticate: Basic realm="Logged out"');
+    
+    // Перенаправляем с параметром, чтобы избежать кэширования
+    header('Location: admin.php?loggedout=1');
     exit();
 }
 
-// Если не авторизован - перенаправляем на страницу входа
-if (!isset($_SESSION['admin_logged_in'])) {
-    header('Location: admin.php?action=login');
+// Если пользователь вышел, показываем сообщение
+if (isset($_GET['loggedout'])) {
+    die('Вы успешно вышли. <a href="admin.php">Войти снова</a>');
+}
+
+if (!isAdminAuthenticated()) {
+    header('WWW-Authenticate: Basic realm="Admin Panel"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Требуется авторизация';
     exit();
 }
 
-// Функции для работы с заявками
 function getAllApplications($pdo) {
     $stmt = $pdo->query("
         SELECT a.*, GROUP_CONCAT(pl.name SEPARATOR ', ') as languages
@@ -165,64 +167,13 @@ function getLanguagesStatistics($pdo) {
     return $stmt->fetchAll();
 }
 
-// Основная логика обработки действий
 $action = $_GET['action'] ?? '';
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 try {
     $pdo = getPDO();
+    $languages = $pdo->query("SELECT * FROM programming_languages ORDER BY name")->fetchAll();
     
-    // Если запрошена страница входа
-    if ($action === 'login') {
-        $login_error = $_SESSION['login_error'] ?? '';
-        unset($_SESSION['login_error']);
-        
-        // Выводим HTML-форму входа
-        ?>
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Вход в панель администратора</title>
-            <style>
-                body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-                .login-container { background: white; padding: 30px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
-                h1 { text-align: center; margin-top: 0; }
-                .form-group { margin-bottom: 15px; }
-                label { display: block; margin-bottom: 5px; font-weight: bold; }
-                input[type="text"], input[type="password"] { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 3px; }
-                .error { color: #d9534f; margin-bottom: 15px; text-align: center; }
-                .submit-btn { width: 100%; padding: 10px; background: #5cb85c; color: white; border: none; border-radius: 3px; cursor: pointer; }
-                .submit-btn:hover { background: #4cae4c; }
-            </style>
-        </head>
-        <body>
-            <div class="login-container">
-                <h1>Вход</h1>
-                <?php if ($login_error): ?>
-                    <div class="error"><?= htmlspecialchars($login_error) ?></div>
-                <?php endif; ?>
-                <form method="POST" action="admin.php">
-                    <input type="hidden" name="login" value="1">
-                    <div class="form-group">
-                        <label for="username">Логин:</label>
-                        <input type="text" id="username" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Пароль:</label>
-                        <input type="password" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="submit-btn">Войти</button>
-                </form>
-            </div>
-        </body>
-        </html>
-        <?php
-        exit();
-    }
-    
-    // Обработка удаления заявки
     if ($action === 'delete' && $id > 0) {
         if (deleteApplication($pdo, $id)) {
             $_SESSION['admin_message'] = 'Заявка успешно удалена';
@@ -233,7 +184,6 @@ try {
         exit();
     }
     
-    // Обработка обновления заявки
     if ($action === 'edit' && $id > 0 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'full_name' => trim($_POST['full_name'] ?? ''),
@@ -255,27 +205,24 @@ try {
         exit();
     }
     
-    // Получаем данные для отображения
     $stats = getLanguagesStatistics($pdo);
     $applications = getAllApplications($pdo);
-    $languages = $pdo->query("SELECT * FROM programming_languages ORDER BY name")->fetchAll();
-    
-    // Если запрошено редактирование заявки
-    $app = null;
-    if ($action === 'edit' && $id > 0) {
-        $app = getApplicationById($pdo, $id);
-        if (!$app) {
-            header('Location: admin.php');
-            exit();
-        }
-        $app['language_ids'] = explode(',', $app['language_ids']);
-    }
     
 } catch (PDOException $e) {
     die("Ошибка базы данных: " . $e->getMessage());
 }
 
-// HTML админ-панели
+// Отображение панели администратора
+$app = null;
+if ($action === 'edit' && $id > 0) {
+    $pdo = getPDO();
+    $app = getApplicationById($pdo, $id);
+    if (!$app) {
+        header('Location: admin.php');
+        exit();
+    }
+    $app['language_ids'] = explode(',', $app['language_ids']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -284,20 +231,20 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель администратора</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; background: #f9f9f9; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
         .message { padding: 10px; margin-bottom: 20px; background: #dff0d8; color: #3c763d; border: 1px solid #d6e9c6; border-radius: 4px; }
         .error { padding: 10px; margin-bottom: 20px; background: #f2dede; color: #a94442; border: 1px solid #ebccd1; border-radius: 4px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
         th { background-color: #f5f5f5; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         .actions a { margin-right: 10px; color: #337ab7; text-decoration: none; }
         .actions a:hover { text-decoration: underline; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 3px; }
+        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
         select[multiple] { height: 120px; }
         .stats-container { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
         .stats-card { flex: 1; min-width: 200px; background: #f5f5f5; padding: 15px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -307,26 +254,24 @@ try {
         .radio-group { display: flex; gap: 15px; }
         .radio-group label { display: flex; align-items: center; font-weight: normal; }
         .radio-group input { width: auto; margin-right: 5px; }
-        .logout-btn { background: #d9534f; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
+        .logout-btn { background: #d9534f; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; }
         .logout-btn:hover { background: #c9302c; }
-        .form-actions { margin-top: 20px; }
-        .btn { padding: 8px 12px; border-radius: 4px; text-decoration: none; display: inline-block; }
-        .btn-primary { background: #337ab7; color: white; }
-        .btn-primary:hover { background: #286090; }
-        .btn-default { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
-        .btn-default:hover { background: #e6e6e6; }
-        .form-group input[type="checkbox"] { width: auto; display: inline-block; margin-right: 10px; }
-        .form-group label[for="contract_agreed"] { display: inline; font-weight: normal; }
+        .form-group input[type="checkbox"] {
+            width: auto;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .form-group label[for="contract_agreed"] {
+            display: inline;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Панель администратора</h1>
-            <div>
-                <span style="margin-right: 15px;">Вы вошли как: <?= htmlspecialchars($_SESSION['admin_name']) ?></span>
-                <a href="admin.php?action=logout" class="logout-btn">Выйти</a>
-            </div>
+            <a href="admin.php?action=logout" class="logout-btn">Выйти</a>
         </div>
         
         <?php if (!empty($_SESSION['admin_message'])): ?>
@@ -339,7 +284,7 @@ try {
             <?php unset($_SESSION['admin_error']); ?>
         <?php endif; ?>
         
-     
+        <h2>Статистика по языкам программирования</h2>
         <div class="stats-container">
             <div class="stats-card">
                 <h3>Популярность языков</h3>
@@ -453,10 +398,8 @@ try {
                     <label for="contract_agreed">Согласие с контрактом*</label>
                 </div>
                 
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                    <a href="admin.php" class="btn btn-default">Отмена</a>
-                </div>
+                <button type="submit">Сохранить</button>
+                <a href="admin.php">Отмена</a>
             </form>
         <?php endif; ?>
     </div>
