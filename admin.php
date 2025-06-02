@@ -288,7 +288,7 @@ if ($action === 'edit' && $id > 0) {
         </div>
         
         <h2>Все заявки</h2>
-       <table>
+     <table>
     <thead>
         <tr>
             <th>ID</th>
@@ -297,8 +297,8 @@ if ($action === 'edit' && $id > 0) {
             <th>Email</th>
             <th>Дата рождения</th>
             <th>Пол</th>
-            <th>Биография</th> 
             <th>Языки программирования</th>
+            <th>Биография</th> <!-- Биография теперь после языков -->
             <th>Действия</th>
         </tr>
     </thead>
@@ -312,7 +312,7 @@ if ($action === 'edit' && $id > 0) {
                 <td><?= htmlspecialchars($appItem['birth_date']) ?></td>
                 <td><?= $appItem['gender'] === 'male' ? 'Мужской' : 'Женский' ?></td>
                 <td><?= htmlspecialchars($appItem['languages']) ?></td>
-                 <td><?= htmlspecialchars($appItem['biography']) ?></td> 
+                <td><?= htmlspecialchars($appItem['biography']) ?></td> <!-- Биография после языков -->
                 <td class="actions">
                     <a href="admin.php?action=edit&id=<?= $appItem['id'] ?>">Редактировать</a>
                     <a href="admin.php?action=delete&id=<?= $appItem['id'] ?>" onclick="return confirm('Вы уверены?')">Удалить</a>
