@@ -311,8 +311,8 @@ if ($action === 'edit' && $id > 0) {
                 <td><?= htmlspecialchars($appItem['email']) ?></td>
                 <td><?= htmlspecialchars($appItem['birth_date']) ?></td>
                 <td><?= $appItem['gender'] === 'male' ? 'Мужской' : 'Женский' ?></td>
-                <td><?= htmlspecialchars($appItem['biography']) ?></td> 
                 <td><?= htmlspecialchars($appItem['languages']) ?></td>
+                 <td><?= htmlspecialchars($appItem['biography']) ?></td> 
                 <td class="actions">
                     <a href="admin.php?action=edit&id=<?= $appItem['id'] ?>">Редактировать</a>
                     <a href="admin.php?action=delete&id=<?= $appItem['id'] ?>" onclick="return confirm('Вы уверены?')">Удалить</a>
